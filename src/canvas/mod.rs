@@ -28,7 +28,11 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub async fn new(instance: &Instance, surface: Surface, size: PhysicalSize<u32>) -> Self {
+    pub async fn create(
+        instance: &Instance,
+        surface: Surface,
+        size: PhysicalSize<u32>,
+    ) -> Result<Self, String> {
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -36,7 +40,10 @@ impl Canvas {
                 force_fallback_adapter: false,
             })
             .await
-            .unwrap();
+            .ok_or_else(|| {
+                log::error!("no adapter!!!");
+                format!("request_adapter")
+            })?;
 
         let (device, queue) = adapter
             .request_device(
@@ -54,7 +61,10 @@ impl Canvas {
                 None, // Trace path
             )
             .await
-            .unwrap();
+            .map_err(|e| {
+                log::error!("no device!!!");
+                format!("request_device: {:?}", e)
+            })?;
 
         let surface_caps = surface.get_capabilities(&adapter);
         // Shader code in this tutorial assumes an sRGB surface texture. Using a different
@@ -175,7 +185,7 @@ impl Canvas {
             multiview: None, // 5.
         });
 
-        Self {
+        Ok(Self {
             surface,
             device,
             queue,
@@ -189,7 +199,7 @@ impl Canvas {
             camera_uniform,
             camera_buffer,
             camera_bind_group,
-        }
+        })
     }
 
     pub fn get_size(&self) -> &PhysicalSize<u32> {
@@ -279,8 +289,7 @@ impl super::Frame for Canvas {
     }
 
     fn set_aspect(&mut self, aspect: f32) {
-        self.camera
-            .resize(aspect);
+        self.camera.resize(aspect);
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
             &self.camera_buffer,
