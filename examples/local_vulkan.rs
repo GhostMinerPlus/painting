@@ -7,7 +7,7 @@ use winit::{
 };
 
 fn main() {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("INFO")).init();
 
     let sz = PhysicalSize::new(1024, 1024);
     let event_loop = EventLoop::new();
