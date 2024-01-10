@@ -1,11 +1,11 @@
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-pub(crate) struct Point {
+pub(crate) struct Vertex {
     pub(crate) pos: [f32; 3],
     pub(crate) color: [f32; 4],
 }
 
-impl Point {
+impl Vertex {
     const ATTRIBS: [wgpu::VertexAttribute; 2] =
         wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x4];
 

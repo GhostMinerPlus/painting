@@ -1,4 +1,4 @@
-use painting::Frame;
+use painting::*;
 use winit::{
     dpi::PhysicalSize,
     event::{Event, WindowEvent},
@@ -23,23 +23,23 @@ fn main() {
     });
     let surface = unsafe { instance.create_surface(&window) }.unwrap();
 
-    let mut canvas = pollster::block_on(painting::Canvas::create(
+    let mut canvas = pollster::block_on(canvas::Canvas::create(
         &instance,
         surface,
         window.inner_size(),
     ))
     .unwrap();
-    canvas.start_line(painting::Point {
+    canvas.start_line(point::Point {
         pos: [0., 0., 0.].into(),
         width: 0.1,
         color: [1., 0., 0., 1.],
     });
-    canvas.push_point(painting::Point {
+    canvas.push_point(point::Point {
         pos: [0., 1., 0.].into(),
         width: 0.2,
         color: [0., 1., 0., 1.],
     });
-    canvas.push_point(painting::Point {
+    canvas.push_point(point::Point {
         pos: [1., 0., 0.].into(),
         width: 0.2,
         color: [0., 0., 1., 1.],

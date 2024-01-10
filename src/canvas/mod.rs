@@ -1,12 +1,145 @@
-pub(crate) mod structs;
-
 mod camera;
+mod structs;
+
+use cgmath::*;
+use std::f32::consts::PI;
 
 use wgpu::{util::DeviceExt, Buffer, Instance, RenderPass, Surface};
 use winit::dpi::PhysicalSize;
 
-use crate::Frame;
+use crate::{point::Point, AsPainter};
 
+fn point_v_to_vertex_v(point_v: &std::vec::Vec<Point>) -> std::vec::Vec<structs::Vertex> {
+    let mut vertex_v = std::vec::Vec::new();
+    for i in 0..point_v.len() {
+        point_to_vertex(&mut vertex_v, &point_v[i]);
+        if i > 0 {
+            let r1 = point_v[(i - 1) as usize].width;
+            let r2 = point_v[i as usize].width;
+            let delta = r2 - r1;
+            let o_p = &point_v[(i - 1) as usize].pos;
+            let o1_p = &point_v[i as usize].pos;
+            let v = o1_p - o_p;
+            let l = v.magnitude();
+            let x_v = v.normalize();
+            let y_v = x_v.cross(Vector3 {
+                x: 0.,
+                y: 0.,
+                z: -1.,
+            });
+            let c_a = -delta / l;
+            let s_a = (l * l - delta * delta).sqrt() / l;
+            let v1 = x_v * c_a + y_v * s_a;
+            let v2 = x_v * c_a - y_v * s_a;
+            let a_p = o_p + v1 * r1;
+            let b_p = o1_p + v1 * r2;
+            let c_p = o_p + v2 * r1;
+            let d_p = o1_p + v2 * r2;
+            vertex_v.push(structs::Vertex {
+                pos: a_p.into(),
+                color: point_v[(i - 1) as usize].color,
+            });
+            vertex_v.push(structs::Vertex {
+                pos: c_p.into(),
+                color: point_v[(i - 1) as usize].color,
+            });
+            vertex_v.push(structs::Vertex {
+                pos: b_p.into(),
+                color: point_v[i as usize].color,
+            });
+            vertex_v.push(structs::Vertex {
+                pos: b_p.into(),
+                color: point_v[i as usize].color,
+            });
+            vertex_v.push(structs::Vertex {
+                pos: c_p.into(),
+                color: point_v[(i - 1) as usize].color,
+            });
+            vertex_v.push(structs::Vertex {
+                pos: d_p.into(),
+                color: point_v[i as usize].color,
+            });
+        }
+    }
+    vertex_v
+}
+
+fn point_to_vertex(vertex_v: &mut std::vec::Vec<structs::Vertex>, point: &Point) {
+    let width = point.width;
+    let num = get_number(width);
+    let unit = 2. * PI / (num as f32);
+    for i in 0..num {
+        let alpha = i as f32 * unit;
+        vertex_v.push(structs::Vertex {
+            pos: [
+                point.pos[0] + width * alpha.cos(),
+                point.pos[1] + width * alpha.sin(),
+                point.pos[2],
+            ],
+            color: point.color,
+        });
+        let alpha = alpha + unit;
+        vertex_v.push(structs::Vertex {
+            pos: [
+                point.pos[0] + width * alpha.cos(),
+                point.pos[1] + width * alpha.sin(),
+                point.pos[2],
+            ],
+            color: point.color,
+        });
+        vertex_v.push(structs::Vertex {
+            pos: point.pos.into(),
+            color: point.color,
+        });
+    }
+}
+
+fn get_number(width: f32) -> u32 {
+    let num = (width.sqrt().sqrt() * 12.) as u32;
+    1 << {
+        if num < 2 {
+            2
+        } else if num > 12 {
+            12
+        } else {
+            num
+        }
+    }
+}
+
+struct LineBuffer {
+    vertex_buffer: Buffer,
+    count: u32,
+}
+
+impl LineBuffer {
+    fn new(line: &Line, canvas: &Canvas) -> Self {
+        let points = point_v_to_vertex_v(&line.points);
+        let vertex_buffer = canvas
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(points.as_slice()),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let count = points.len() as u32;
+        Self {
+            vertex_buffer,
+            count,
+        }
+    }
+
+    fn draw_self<'a, 'b>(&'a self, canvas: &'a Canvas, render_pass: &mut RenderPass<'b>)
+    where
+        'a: 'b,
+    {
+        render_pass.set_pipeline(&canvas.render_pipeline); // 2.
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.draw(0..self.count, 0..1); // 3.
+    }
+}
+
+// Public
 pub struct Canvas {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -17,9 +150,9 @@ pub struct Canvas {
 
     render_pipeline: wgpu::RenderPipeline,
 
-    s_line: Option<super::Line>,
+    s_line: Option<Line>,
     next_id: u64,
-    lines: std::collections::BTreeMap<u64, Line>,
+    lines: std::collections::BTreeMap<u64, LineBuffer>,
 
     camera: camera::Camera,
     camera_uniform: camera::CameraUniform,
@@ -150,8 +283,8 @@ impl Canvas {
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",             // 1.
-                buffers: &[structs::Point::desc()], // 2.
+                entry_point: "vs_main",              // 1.
+                buffers: &[structs::Vertex::desc()], // 2.
             },
             fragment: Some(wgpu::FragmentState {
                 // 3.
@@ -219,7 +352,7 @@ impl Canvas {
         self.set_aspect((new_size.width as f32) / (new_size.height as f32));
     }
 
-    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -264,19 +397,21 @@ impl Canvas {
     }
 }
 
-impl super::Frame for Canvas {
+impl super::AsPainter for Canvas {
     fn redraw(&mut self) {
         let _ = self.render();
     }
 
-    fn push_point(&mut self, pt: crate::Point) {
+    fn push_point(&mut self, pt: Point) {
         self.s_line.as_mut().unwrap().push_point(pt);
-        self.lines
-            .insert(self.next_id, Line::new(self.s_line.as_ref().unwrap(), self));
+        self.lines.insert(
+            self.next_id,
+            LineBuffer::new(self.s_line.as_ref().unwrap(), self),
+        );
     }
 
-    fn start_line(&mut self, pt: crate::Point) {
-        self.s_line = Some(super::Line::new(pt));
+    fn start_line(&mut self, pt: Point) {
+        self.s_line = Some(Line::new(pt));
     }
 
     fn end_line(&mut self) {
@@ -299,35 +434,19 @@ impl super::Frame for Canvas {
     }
 }
 
-struct Line {
-    vertex_buffer: Buffer,
-    count: u32,
+pub struct Line {
+    points: std::vec::Vec<Point>,
 }
 
 impl Line {
-    pub fn new(line: &super::Line, canvas: &Canvas) -> Self {
-        let points = line.build_points();
-        let vertex_buffer = canvas
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(points.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let count = points.len() as u32;
+    pub fn new(point: Point) -> Self {
         Self {
-            vertex_buffer,
-            count,
+            points: std::vec![point],
         }
     }
 
-    fn draw_self<'a, 'b>(&'a self, canvas: &'a Canvas, render_pass: &mut RenderPass<'b>)
-    where
-        'a: 'b,
-    {
-        render_pass.set_pipeline(&canvas.render_pipeline); // 2.
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..self.count, 0..1); // 3.
+    pub fn push_point(&mut self, point: Point) {
+        self.points.push(point);
     }
 }
 

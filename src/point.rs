@@ -1,6 +1,10 @@
 use winit::dpi::PhysicalSize;
 
-use crate::Point;
+pub struct Point {
+    pub pos: cgmath::Point3<f32>,
+    pub color: [f32; 4],
+    pub width: f32,
+}
 
 pub struct Pen {
     width: f32,
