@@ -1,11 +1,12 @@
 #[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
+const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
     0.0, 0.0, 0.5, 1.0,
 );
 
+// Public
 pub struct Camera {
     eye: cgmath::Point3<f32>,
     target: cgmath::Point3<f32>,
@@ -54,11 +55,11 @@ impl Camera {
 // We need this for Rust to store our data correctly for the shaders
 #[repr(C)]
 // This is so we can store this in a buffer
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CameraUniform {
     // We can't use cgmath with bytemuck directly so we'll have
     // to convert the Matrix4 into a 4x4 f32 array
-    pub proj_view: [[f32; 4]; 4],
+    proj_view: [[f32; 4]; 4],
 }
 
 impl CameraUniform {
@@ -71,5 +72,27 @@ impl CameraUniform {
 
     pub fn update(&mut self, camera: &Camera) {
         self.proj_view = (camera.build_projection_matrix() * camera.build_view_matrix()).into();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let camera = super::Camera::new(
+            // position the camera one unit up and 2 units back
+            // +z is out of the screen
+            (0.0, 0.0, 2.0).into(),
+            // have it look at the origin
+            (0., 0., 0.).into(),
+            // which way is "up"
+            cgmath::Vector3::unit_y(),
+            1.,
+            45.0,
+            0.1,
+            100.0,
+        );
+        let pos = camera.build_view_matrix() * cgmath::vec4(0., 1., 3., 1.);
+        println!("{:?}", pos);
     }
 }

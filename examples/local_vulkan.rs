@@ -1,3 +1,5 @@
+use std::io;
+
 use painting::*;
 use winit::{
     dpi::PhysicalSize,
@@ -6,7 +8,7 @@ use winit::{
     window::WindowBuilder,
 };
 
-fn main() {
+fn main() -> io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("INFO")).init();
 
     let sz = PhysicalSize::new(1024, 1024);
@@ -23,12 +25,8 @@ fn main() {
     });
     let surface = unsafe { instance.create_surface(&window) }.unwrap();
 
-    let mut canvas = pollster::block_on(canvas::Canvas::create(
-        &instance,
-        surface,
-        window.inner_size(),
-    ))
-    .unwrap();
+    let mut canvas =
+        pollster::block_on(Canvas::create(&instance, surface, window.inner_size()))?;
     canvas.start_line(point::Point {
         pos: [0., 0., 0.].into(),
         width: 0.1,
