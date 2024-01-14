@@ -1,5 +1,6 @@
 use winit::dpi::PhysicalSize;
 
+#[derive(Clone)]
 pub struct Point {
     pub pos: cgmath::Point3<f32>,
     pub color: [f32; 4],
