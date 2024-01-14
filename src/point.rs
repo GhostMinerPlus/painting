@@ -14,11 +14,8 @@ pub struct Pen {
 }
 
 impl Pen {
-    pub fn new() -> Self {
-        Self {
-            width: 0.002,
-            color: [0., 0., 0., 1.],
-        }
+    pub fn new(width: f32, color: [f32; 4]) -> Self {
+        Self { width, color }
     }
 
     pub fn px2point(&self, x: f32, y: f32, force: f32, sz: PhysicalSize<u32>) -> Point {
@@ -30,5 +27,22 @@ impl Pen {
             width: self.width * (1.0 + force * 2.),
         };
         point
+    }
+
+    pub fn set_width(&mut self, width: f32) {
+        self.width = width;
+    }
+
+    pub fn set_color(&mut self, color: [f32; 4]) {
+        self.color = color;
+    }
+}
+
+impl Default for Pen {
+    fn default() -> Self {
+        Self {
+            width: 0.002,
+            color: [0., 0., 0., 1.],
+        }
     }
 }
