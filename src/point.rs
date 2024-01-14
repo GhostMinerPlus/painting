@@ -7,6 +7,7 @@ pub struct Point {
     pub width: f32,
 }
 
+#[derive(Clone)]
 pub struct Pen {
     width: f32,
     color: [f32; 4],
@@ -29,14 +30,5 @@ impl Pen {
             width: self.width * (1.0 + force * 2.),
         };
         point
-    }
-}
-
-impl Clone for Pen {
-    fn clone(&self) -> Self {
-        Self {
-            width: self.width,
-            color: self.color.clone(),
-        }
     }
 }
