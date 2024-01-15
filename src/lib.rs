@@ -9,20 +9,6 @@ use winit::dpi::PhysicalSize;
 // Public
 pub mod point;
 
-pub trait AsPainter {
-    fn redraw(&mut self);
-
-    fn push_point(&mut self, pt: point::Point);
-
-    fn start_line(&mut self, pt: point::Point);
-
-    fn end_line(&mut self);
-
-    fn cancle_line(&mut self);
-
-    fn set_aspect(&mut self, aspect: f32);
-}
-
 pub struct Canvas {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -275,14 +261,8 @@ impl Canvas {
         output.present();
         Ok(())
     }
-}
 
-impl AsPainter for Canvas {
-    fn redraw(&mut self) {
-        let _ = self.render();
-    }
-
-    fn push_point(&mut self, pt: point::Point) {
+    pub fn push_point(&mut self, pt: point::Point) {
         self.s_line.as_mut().unwrap().push_point(pt);
         self.lines.insert(
             self.next_id,
@@ -290,20 +270,20 @@ impl AsPainter for Canvas {
         );
     }
 
-    fn start_line(&mut self, pt: point::Point) {
+    pub fn start_line(&mut self, pt: point::Point) {
         self.s_line = Some(canvas::Line::new(pt));
     }
 
-    fn end_line(&mut self) {
+    pub fn end_line(&mut self) {
         self.s_line = None;
         self.next_id += 1;
     }
 
-    fn cancle_line(&mut self) {
+    pub fn cancle_line(&mut self) {
         self.lines.remove(&self.next_id);
     }
 
-    fn set_aspect(&mut self, aspect: f32) {
+    pub fn set_aspect(&mut self, aspect: f32) {
         self.camera.resize(aspect);
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
@@ -311,5 +291,9 @@ impl AsPainter for Canvas {
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
+    }
+
+    pub fn clear(&mut self) {
+        self.lines.clear();
     }
 }

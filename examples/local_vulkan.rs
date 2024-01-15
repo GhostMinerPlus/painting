@@ -59,7 +59,7 @@ fn main() -> io::Result<()> {
             _ => {}
         },
         Event::RedrawRequested(window_id) if window_id == window.id() => {
-            canvas.redraw();
+            let _ = canvas.render();
         }
         _ => {}
     });
