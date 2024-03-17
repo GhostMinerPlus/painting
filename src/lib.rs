@@ -32,6 +32,8 @@ pub trait AsCanvas {
     fn clear(&mut self);
 
     fn move_content(&mut self, x: f32, y: f32, z: f32);
+
+    fn scacle(&mut self, x: f32, y: f32, z: f32);
 }
 
 pub struct Canvas {
@@ -331,6 +333,16 @@ impl AsCanvas for Canvas {
 
     fn move_content(&mut self, x: f32, y: f32, z: f32) {
         self.camera.vm = cgmath::Matrix4::from_translation(Vector3::new(x, y, z)) * self.camera.vm;
+        self.camera_uniform.update(&self.camera);
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
+    }
+
+    fn scacle(&mut self, x: f32, y: f32, z: f32) {
+        self.camera.vm = cgmath::Matrix4::from_nonuniform_scale(x, y, z) * self.camera.vm;
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
             &self.camera_buffer,
