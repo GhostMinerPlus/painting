@@ -28,17 +28,17 @@ fn main() -> io::Result<()> {
     let mut canvas =
         pollster::block_on(Canvas::create(&instance, surface, window.inner_size()))?;
     canvas.start_line(point::Point {
-        pos: [0., 0., 0.].into(),
+        pos: [0., 0., -1.0].into(),
         width: 0.1,
         color: [1., 0., 0., 1.],
     });
     canvas.push_point(point::Point {
-        pos: [0., 1., 0.].into(),
+        pos: [0., 1., -1.0].into(),
         width: 0.2,
         color: [0., 1., 0., 1.],
     });
     canvas.push_point(point::Point {
-        pos: [1., 0., 0.].into(),
+        pos: [1., 0., -1.0].into(),
         width: 0.2,
         color: [0., 0., 1., 1.],
     });
