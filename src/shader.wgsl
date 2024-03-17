@@ -1,4 +1,3 @@
-// Vertex shader
 struct CameraUniform {
     proj_view: mat4x4<f32>,
 };
@@ -23,13 +22,10 @@ fn vs_main(
     var out: VertexOutput;
 
     out.color = model.color;
-
     out.clip_position = camera.proj_view * vec4<f32>(model.position, 1.0);
 
     return out;
 }
-
-// Fragment shader
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
