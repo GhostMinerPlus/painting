@@ -1,4 +1,3 @@
-mod camera;
 mod line;
 
 use std::io::{self, Error};
@@ -8,6 +7,7 @@ use wgpu::{util::DeviceExt, Instance, Surface};
 use winit::dpi::PhysicalSize;
 
 // Public
+pub mod camera;
 pub mod point;
 
 pub trait AsCanvas {
@@ -17,8 +17,10 @@ pub trait AsCanvas {
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError>;
 
+    /// Point in view
     fn push_point(&mut self, pt: point::Point);
 
+    /// Point in view
     fn start_line(&mut self, pt: point::Point);
 
     fn end_line(&mut self);
@@ -288,7 +290,9 @@ impl AsCanvas for Canvas {
         Ok(())
     }
 
-    fn push_point(&mut self, pt: point::Point) {
+    fn push_point(&mut self, mut pt: point::Point) {
+        let o_pt = camera::untransform_point(&self.camera.vm, &pt.pos);
+        pt.pos = o_pt;
         self.s_line.as_mut().unwrap().push_point(pt);
         self.lines.insert(
             self.next_id,
@@ -296,7 +300,9 @@ impl AsCanvas for Canvas {
         );
     }
 
-    fn start_line(&mut self, pt: point::Point) {
+    fn start_line(&mut self, mut pt: point::Point) {
+        let o_pt = camera::untransform_point(&self.camera.vm, &pt.pos);
+        pt.pos = o_pt;
         self.s_line = Some(line::Line::new(pt));
     }
 
