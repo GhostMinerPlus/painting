@@ -130,11 +130,10 @@ impl LineBuffer {
         }
     }
 
-    pub fn draw_self<'a, 'b>(&'a self, canvas: &'a Canvas, render_pass: &mut RenderPass<'b>)
+    pub fn draw_self<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>)
     where
         'a: 'b,
     {
-        render_pass.set_pipeline(&canvas.render_pipeline); // 2.
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.draw(0..self.count, 0..1); // 3.
     }

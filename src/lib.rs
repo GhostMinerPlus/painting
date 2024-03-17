@@ -1,5 +1,5 @@
 mod camera;
-mod canvas;
+mod line;
 
 use std::io::{self, Error};
 
@@ -8,6 +8,26 @@ use winit::dpi::PhysicalSize;
 
 // Public
 pub mod point;
+
+pub trait AsCanvas {
+    fn get_size(&self) -> &PhysicalSize<u32>;
+
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>);
+
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError>;
+
+    fn push_point(&mut self, pt: point::Point);
+
+    fn start_line(&mut self, pt: point::Point);
+
+    fn end_line(&mut self);
+
+    fn cancle_line(&mut self);
+
+    fn set_aspect(&mut self, aspect: f32);
+
+    fn clear(&mut self);
+}
 
 pub struct Canvas {
     device: wgpu::Device,
@@ -19,9 +39,9 @@ pub struct Canvas {
 
     render_pipeline: wgpu::RenderPipeline,
 
-    s_line: Option<canvas::Line>,
+    s_line: Option<line::Line>,
     next_id: u64,
-    lines: std::collections::BTreeMap<u64, canvas::LineBuffer>,
+    lines: std::collections::BTreeMap<u64, line::LineBuffer>,
 
     camera: camera::Camera,
     camera_uniform: camera::CameraUniform,
@@ -150,7 +170,7 @@ impl Canvas {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main",             // 1.
-                buffers: &[canvas::Vertex::desc()], // 2.
+                buffers: &[line::Vertex::desc()], // 2.
             },
             fragment: Some(wgpu::FragmentState {
                 // 3.
@@ -200,12 +220,14 @@ impl Canvas {
             camera_bind_group,
         })
     }
+}
 
-    pub fn get_size(&self) -> &PhysicalSize<u32> {
+impl AsCanvas for Canvas {
+    fn get_size(&self) -> &PhysicalSize<u32> {
         &self.size
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width <= 0 || new_size.height <= 0 {
             return;
         }
@@ -218,7 +240,7 @@ impl Canvas {
         self.set_aspect((new_size.width as f32) / (new_size.height as f32));
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -252,8 +274,9 @@ impl Canvas {
                 depth_stencil_attachment: None,
             });
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
+            render_pass.set_pipeline(&self.render_pipeline); // 2.
             for (_, line) in &self.lines {
-                line.draw_self(self, &mut render_pass);
+                line.draw_self(&mut render_pass);
             }
         }
         // submit will accept anything that implements IntoIter
@@ -262,28 +285,28 @@ impl Canvas {
         Ok(())
     }
 
-    pub fn push_point(&mut self, pt: point::Point) {
+    fn push_point(&mut self, pt: point::Point) {
         self.s_line.as_mut().unwrap().push_point(pt);
         self.lines.insert(
             self.next_id,
-            canvas::LineBuffer::new(self.s_line.as_ref().unwrap(), self),
+            line::LineBuffer::new(self.s_line.as_ref().unwrap(), self),
         );
     }
 
-    pub fn start_line(&mut self, pt: point::Point) {
-        self.s_line = Some(canvas::Line::new(pt));
+    fn start_line(&mut self, pt: point::Point) {
+        self.s_line = Some(line::Line::new(pt));
     }
 
-    pub fn end_line(&mut self) {
+    fn end_line(&mut self) {
         self.s_line = None;
         self.next_id += 1;
     }
 
-    pub fn cancle_line(&mut self) {
+    fn cancle_line(&mut self) {
         self.lines.remove(&self.next_id);
     }
 
-    pub fn set_aspect(&mut self, aspect: f32) {
+    fn set_aspect(&mut self, aspect: f32) {
         self.camera.resize(aspect);
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
@@ -293,7 +316,7 @@ impl Canvas {
         );
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.lines.clear();
     }
 }
