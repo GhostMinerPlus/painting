@@ -330,7 +330,7 @@ impl AsCanvas for Canvas {
     }
 
     fn move_content(&mut self, x: f32, y: f32, z: f32) {
-        self.camera.vm = self.camera.vm * cgmath::Matrix4::from_translation(Vector3::new(x, y, z));
+        self.camera.vm = cgmath::Matrix4::from_translation(Vector3::new(x, y, z)) * self.camera.vm;
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
             &self.camera_buffer,
