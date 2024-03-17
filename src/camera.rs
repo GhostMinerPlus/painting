@@ -10,17 +10,19 @@ const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 
 // Public
 pub fn untransform_point(m: &cgmath::Matrix4<f32>, pt: &Point3<f32>) -> Point3<f32> {
+    let origin = m.transform_point(Point3::new(0.0, 0.0, 0.0));
     let v = pt - m.transform_point(Point3::new(0.0, 0.0, 0.0));
-    let x = m.transform_vector(Vector3::unit_x()).dot(v);
-    let y = m.transform_vector(Vector3::unit_y()).dot(v);
-    let z = m.transform_vector(Vector3::unit_z()).dot(v);
+    let x = v.dot(m.transform_point(Point3::new(1.0, 0.0, 0.0)) - origin);
+    let y = v.dot(m.transform_point(Point3::new(0.0, 1.0, 0.0)) - origin);
+    let z = v.dot(m.transform_point(Point3::new(0.0, 0.0, 1.0)) - origin);
     Point3 { x, y, z }
 }
 
 pub fn untransform_vector(m: &cgmath::Matrix4<f32>, v: &Vector3<f32>) -> Vector3<f32> {
-    let x = m.transform_vector(Vector3::unit_x()).dot(*v);
-    let y = m.transform_vector(Vector3::unit_y()).dot(*v);
-    let z = m.transform_vector(Vector3::unit_z()).dot(*v);
+    let origin = m.transform_point(Point3::new(0.0, 0.0, 0.0));
+    let x = v.dot(m.transform_point(Point3::new(1.0, 0.0, 0.0)) - origin);
+    let y = v.dot(m.transform_point(Point3::new(0.0, 1.0, 0.0)) - origin);
+    let z = v.dot(m.transform_point(Point3::new(0.0, 0.0, 1.0)) - origin);
     Vector3 { x, y, z }
 }
 
