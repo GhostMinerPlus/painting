@@ -1,3 +1,5 @@
+use cgmath::{InnerSpace, Point3, Transform, Vector3};
+
 #[rustfmt::skip]
 const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
     1.0, 0.0, 0.0, 0.0,
@@ -7,6 +9,21 @@ const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 );
 
 // Public
+pub fn untransform_point(m: &cgmath::Matrix4<f32>, pt: &Point3<f32>) -> Point3<f32> {
+    let v = pt - m.transform_point(Point3::new(0.0, 0.0, 0.0));
+    let x = m.transform_vector(Vector3::unit_x()).dot(v);
+    let y = m.transform_vector(Vector3::unit_y()).dot(v);
+    let z = m.transform_vector(Vector3::unit_z()).dot(v);
+    Point3 { x, y, z }
+}
+
+pub fn untransform_vector(m: &cgmath::Matrix4<f32>, v: &Vector3<f32>) -> Vector3<f32> {
+    let x = m.transform_vector(Vector3::unit_x()).dot(*v);
+    let y = m.transform_vector(Vector3::unit_y()).dot(*v);
+    let z = m.transform_vector(Vector3::unit_z()).dot(*v);
+    Vector3 { x, y, z }
+}
+
 pub struct Camera {
     aspect: f32,
     fovy: f32,
