@@ -3,6 +3,7 @@ mod line;
 
 use std::io::{self, Error};
 
+use cgmath::Vector3;
 use wgpu::{util::DeviceExt, Instance, Surface};
 use winit::dpi::PhysicalSize;
 
@@ -27,6 +28,8 @@ pub trait AsCanvas {
     fn set_aspect(&mut self, aspect: f32);
 
     fn clear(&mut self);
+
+    fn move_content(&mut self, x: f32, y: f32, z: f32);
 }
 
 pub struct Canvas {
@@ -169,7 +172,7 @@ impl Canvas {
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",             // 1.
+                entry_point: "vs_main",           // 1.
                 buffers: &[line::Vertex::desc()], // 2.
             },
             fragment: Some(wgpu::FragmentState {
@@ -307,7 +310,7 @@ impl AsCanvas for Canvas {
     }
 
     fn set_aspect(&mut self, aspect: f32) {
-        self.camera.resize(aspect);
+        self.camera.set_aspect(aspect);
         self.camera_uniform.update(&self.camera);
         self.queue.write_buffer(
             &self.camera_buffer,
@@ -318,5 +321,15 @@ impl AsCanvas for Canvas {
 
     fn clear(&mut self) {
         self.lines.clear();
+    }
+
+    fn move_content(&mut self, x: f32, y: f32, z: f32) {
+        self.camera.vm = self.camera.vm * cgmath::Matrix4::from_translation(Vector3::new(x, y, z));
+        self.camera_uniform.update(&self.camera);
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera_uniform]),
+        );
     }
 }
