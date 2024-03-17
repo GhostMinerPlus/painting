@@ -56,6 +56,21 @@ fn main() -> io::Result<()> {
             WindowEvent::CloseRequested | WindowEvent::Destroyed => {
                 *control_flow = ControlFlow::Exit
             }
+            WindowEvent::KeyboardInput { device_id: _, input, is_synthetic: _ } => {
+                if let Some(key_code) = input.virtual_keycode {
+                    match key_code {
+                        winit::event::VirtualKeyCode::Up => {
+                            canvas.move_content(0.0, 0.1, 0.0);
+                            let _ = canvas.render();
+                        }
+                        winit::event::VirtualKeyCode::Down => {
+                            canvas.move_content(0.0, -0.1, 0.0);
+                            let _ = canvas.render();
+                        }
+                        _ => (),
+                    }
+                }
+            }
             _ => {}
         },
         Event::RedrawRequested(window_id) if window_id == window.id() => {
