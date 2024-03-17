@@ -117,13 +117,13 @@ impl Canvas {
         let camera = camera::Camera::new(
             // position the camera one unit up and 2 units back
             // +z is out of the screen
-            (0.0, 0.0, 2.4142).into(),
+            (0.0, 0.0, 1.0).into(),
             // have it look at the origin
             (0., 0., 0.).into(),
             // which way is "up"
             cgmath::Vector3::unit_y(),
             config.width as f32 / config.height as f32,
-            45.0,
+            90.0,
             0.1,
             100.0,
         );
